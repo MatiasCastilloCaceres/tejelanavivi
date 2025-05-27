@@ -1,0 +1,23 @@
+{
+  "name": "tejelanas-vivi",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^5.17.1",
+    "@mui/material": "^5.17.1",
+    "next": "^15.3.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-material-ui-carousel": "^3.3.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^3.1.0",
+    "vite": "^4.3.9"
+  }
+}
