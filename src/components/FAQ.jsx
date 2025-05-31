@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Container, 
@@ -6,56 +6,140 @@ import {
   Accordion, 
   AccordionSummary, 
   AccordionDetails,
-  Grid,
-  Button,
+  CircularProgress,
+  Alert,
   useTheme
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { apiService } from '../services/api';
 
 function FAQ() {
   const theme = useTheme();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const faqData = await apiService.getFAQ();
+        console.log('📋 FAQ data received:', faqData);
+        console.log('📋 FAQ data structure:', Object.keys(faqData || {}));
+        
+        setData(faqData);
+      } catch (err) {
+        console.error('❌ FAQ component: Error:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  const faqs = [
-    {
-      question: "¿Qué tipos de lana ofrecen?",
-      answer: "Ofrecemos una variedad de lanas naturales, incluyendo merino, alpaca y mezclas especiales. Todas nuestras lanas son de origen natural y muchas están teñidas artesanalmente con tintes naturales."
-    },
-    {
-      question: "¿Cómo puedo inscribirme en un taller?",
-      answer: "Puedes inscribirte en nuestros talleres a través del formulario de contacto en nuestra página web, enviándonos un correo electrónico o llamándonos directamente. Los talleres tienen cupos limitados, así que te recomendamos reservar con anticipación."
-    },
-    {
-      question: "¿Hacen envíos a todo Chile?",
-      answer: "Sí, realizamos envíos a todo Chile a través de empresas de transporte confiables. El tiempo de entrega varía según la localidad, generalmente entre 3 a 7 días hábiles. Los costos de envío se calculan según el destino y el peso del paquete."
-    },
-    {
-      question: "¿Puedo visitar su tienda física?",
-      answer: "Sí, tenemos una tienda física ubicada en Zapallar. Estamos abiertos de martes a sábado, de 10:00 a 18:00 horas. Te recomendamos contactarnos antes de tu visita para asegurarnos de poder atenderte de la mejor manera."
-    },
-    {
-      question: "¿Ofrecen descuentos por compras al por mayor?",
-      answer: "Sí, tenemos precios especiales para compras al por mayor. Si estás interesado/a, puedes contactarnos directamente para discutir tus necesidades y obtener una cotización personalizada."
-    },
-    {
-      question: "¿Tienen muestras de colores disponibles?",
-      answer: "Sí, podemos enviarte muestras de colores si necesitas ver la tonalidad exacta antes de realizar una compra mayor. Hay un pequeño costo por el envío de muestras, que será descontado de tu compra si decides adquirir nuestros productos."
+  // Función para extraer las FAQs de diferentes estructuras posibles
+  const getFAQs = () => {
+    if (!data) {
+      return [];
     }
-  ];
+
+    console.log('🔍 Processing FAQ data structure:', data);
+    
+    let faqs = [];
+    
+    // Estructura 1: { data: { faqs: [...] } }
+    if (data.data && data.data.faqs && Array.isArray(data.data.faqs)) {
+      console.log('📋 Found faqs in data.data.faqs, length:', data.data.faqs.length);
+      faqs = data.data.faqs;
+    }
+    // Estructura 2: { data: [...] }
+    else if (data.data && Array.isArray(data.data)) {
+      console.log('📋 Found faqs in data.data array, length:', data.data.length);
+      faqs = data.data;
+    }
+    // Estructura 3: { faqs: [...] }
+    else if (data.faqs && Array.isArray(data.faqs)) {
+      console.log('📋 Found faqs in data.faqs, length:', data.faqs.length);
+      faqs = data.faqs;
+    }
+    // Estructura 4: directamente un array
+    else if (Array.isArray(data)) {
+      console.log('📋 Data is direct array, length:', data.length);
+      faqs = data;
+    }
+    // Estructura 5: buscar cualquier array en las propiedades
+    else {
+      console.log('🤔 Searching for arrays in FAQ object properties...');
+      const keys = Object.keys(data);
+      for (const key of keys) {
+        if (Array.isArray(data[key]) && data[key].length > 0) {
+          console.log(`📋 Found array in key '${key}', length:`, data[key].length);
+          faqs = data[key];
+          break;
+        }
+      }
+    }
+
+    console.log('📦 Final FAQs extracted:', faqs.length);
+    console.log('📦 Sample FAQ:', faqs[0]);
+    
+    return faqs;
+  };
+
+  const faqs = getFAQs();
+
+  if (loading) {
+    return (
+      <Box sx={{ 
+        py: { xs: 6, md: 10 },
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '400px'
+      }} id="faq">
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Cargando preguntas frecuentes...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ py: { xs: 6, md: 10 } }} id="faq">
+        <Container maxWidth="lg">
+          <Alert severity="error" sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Error al cargar preguntas frecuentes
+            </Typography>
+            <Typography>
+              {error}
+            </Typography>
+          </Alert>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
-    <Box 
-      sx={{ 
-        py: { xs: 8, md: 12 }, 
-        background: `linear-gradient(to bottom, white 0%, ${theme.palette.background.default} 100%)`
-      }}
-    >
+    <Box sx={{ 
+      py: { xs: 6, md: 10 },
+      backgroundColor: theme.palette.background.default
+    }} id="faq">  {/* ← ID correcto para navegación */}
       <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
+        <Box sx={{ mb: 6, textAlign: 'center' }}>
           <Typography 
             variant="h2" 
             component="h2" 
@@ -78,135 +162,115 @@ function FAQ() {
               }
             }}
           >
-            Preguntas frecuentes
+            {data?.title || data?.titulo || 'Preguntas Frecuentes'}
           </Typography>
-          <Typography 
-            variant="h5" 
-            sx={{ 
-              maxWidth: '700px',
-              mx: 'auto',
-              color: theme.palette.text.secondary,
-              mt: 2
-            }}
-          >
-            Resolvemos tus dudas sobre nuestros productos y servicios
-          </Typography>
+          
+          {(data?.description || data?.descripcion) && (
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                maxWidth: '800px',
+                mx: 'auto',
+                color: theme.palette.text.secondary,
+                mt: 2
+              }}
+            >
+              {data.description || data.descripcion}
+            </Typography>
+          )}
         </Box>
 
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={8}>
-            <Box>
-              {faqs.map((faq, index) => (
+        {faqs.length > 0 ? (
+          <Box sx={{ maxWidth: '900px', mx: 'auto' }}>
+            {faqs.map((faq, index) => {
+              const panelId = `panel${index}`;
+              
+              // Extraer pregunta y respuesta de diferentes posibles nombres
+              const question = faq.question || faq.pregunta || faq.title || faq.titulo || `Pregunta ${index + 1}`;
+              const answer = faq.answer || faq.respuesta || faq.description || faq.descripcion || 'Sin respuesta disponible';
+              
+              console.log(`🎯 Rendering FAQ ${index}:`, { question, answer });
+              
+              return (
                 <Accordion 
-                  key={index} 
-                  expanded={expanded === `panel${index}`} 
-                  onChange={handleChange(`panel${index}`)}
+                  key={faq.id || index}
+                  expanded={expanded === panelId} 
+                  onChange={handleChange(panelId)}
                   sx={{ 
                     mb: 2,
-                    borderRadius: '8px',
-                    overflow: 'hidden',
+                    borderRadius: 2,
                     '&:before': {
                       display: 'none',
                     },
-                    boxShadow: expanded === `panel${index}` 
-                      ? '0 8px 24px rgba(0,0,0,0.15)' 
-                      : '0 2px 8px rgba(0,0,0,0.08)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    '&.Mui-expanded': {
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    }
                   }}
                 >
-                  <AccordionSummary
+                  <AccordionSummary 
                     expandIcon={<ExpandMoreIcon />}
-                    sx={{ 
-                      backgroundColor: expanded === `panel${index}` 
-                        ? theme.palette.primary.light 
-                        : theme.palette.background.paper,
+                    sx={{
+                      backgroundColor: expanded === panelId ? theme.palette.primary.light : 'transparent',
+                      color: expanded === panelId ? 'white' : 'inherit',
+                      borderRadius: expanded === panelId ? '8px 8px 0 0' : '8px',
+                      minHeight: '64px',
+                      '&.Mui-expanded': {
+                        minHeight: '64px',
+                      },
                       '& .MuiAccordionSummary-content': {
-                        py: 1,
+                        my: 2
                       }
                     }}
                   >
                     <Typography 
-                      variant="h6"
+                      variant="h6" 
                       sx={{ 
                         fontWeight: 600,
-                        color: expanded === `panel${index}` 
-                          ? theme.palette.primary.contrastText 
-                          : theme.palette.text.primary
+                        fontSize: '1.1rem'
                       }}
                     >
-                      {faq.question}
+                      {question}
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails 
                     sx={{ 
-                      backgroundColor: theme.palette.background.paper,
-                      p: 3
+                      pt: 3,
+                      pb: 3,
+                      backgroundColor: 'white'
                     }}
                   >
-                    <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
-                      {faq.answer}
+                    <Typography 
+                      variant="body1"
+                      sx={{ 
+                        lineHeight: 1.7,
+                        color: theme.palette.text.secondary
+                      }}
+                    >
+                      {answer}
                     </Typography>
                   </AccordionDetails>
                 </Accordion>
-              ))}
-            </Box>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <Box 
-              sx={{ 
-                bgcolor: theme.palette.primary.main,
-                color: 'white',
-                p: 4,
-                borderRadius: 4,
-                boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <Typography variant="h4" gutterBottom>
-                ¿No encuentras la respuesta?
+              );
+            })}
+          </Box>
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Alert severity="info" sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                No se encontraron preguntas frecuentes
               </Typography>
-              <Typography 
-                variant="body1" 
-                paragraph
-                sx={{ 
-                  mb: 4,
-                  opacity: 0.9,
-                  fontSize: '1.1rem'
-                }}
-              >
-                Contáctanos directamente y te responderemos a la brevedad. Estamos aquí para ayudarte con cualquier duda o consulta.
+              <Typography variant="body1">
+                La API no devolvió datos de FAQ o la estructura es diferente a la esperada.
               </Typography>
-              <Box sx={{ mt: 'auto' }}>
-                <Button 
-                  variant="contained" 
-                  color="secondary" 
-                  fullWidth 
-                  size="large"
-                  sx={{ mb: 2 }}
-                >
-                  Contactar por WhatsApp
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  fullWidth 
-                  size="large"
-                  sx={{ 
-                    color: 'white',
-                    borderColor: 'white',
-                    '&:hover': {
-                      borderColor: 'white',
-                      backgroundColor: 'rgba(255,255,255,0.1)'
-                    }
-                  }}
-                >
-                  Enviar un email
-                </Button>
-              </Box>
-            </Box>
-          </Grid>
-        </Grid>
+              {process.env.NODE_ENV === 'development' && (
+                <Typography variant="body2" sx={{ mt: 2, fontFamily: 'monospace' }}>
+                  Estructura recibida: {JSON.stringify(data, null, 2)}
+                </Typography>
+              )}
+            </Alert>
+          </Box>
+        )}
       </Container>
     </Box>
   );

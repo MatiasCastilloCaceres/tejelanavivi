@@ -1,222 +1,200 @@
 import React, { useState } from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  Box, 
-  IconButton, 
-  Menu, 
-  MenuItem, 
-  Container,
-  useScrollTrigger,
-  Slide,
-  Avatar,
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  Box,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Container
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
 
-// Componente que oculta la barra al hacer scroll
-function HideOnScroll(props) {
-  const { children } = props;
-  const trigger = useScrollTrigger();
-
-  return (
-    <Slide appear={false} direction="down" in={!trigger}>
-      {children}
-    </Slide>
-  );
-}
-
-function Navbar() {
-  const [anchorElNav, setAnchorElNav] = useState(null);
+const Navbar = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleOpenNavMenu = (event) => {
-    setAnchorElNav(event.currentTarget);
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
   };
 
-  const handleCloseNavMenu = () => {
-    setAnchorElNav(null);
-  };
-
-  // Función para manejar el desplazamiento suave a las secciones
+  // Función mejorada para scroll suave con offset
   const scrollToSection = (sectionId) => {
-    const section = document.getElementById(sectionId);
-    if (section) {
-      handleCloseNavMenu(); // Cierra el menú móvil si está abierto
-      
-      // Desplazamiento suave a la sección
-      section.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const headerOffset = 80; // Altura del navbar
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
       });
-      
-      // Actualiza la URL sin recargar la página
-      window.history.pushState(null, '', `#${sectionId}`);
+    }
+    
+    // Cerrar drawer en móvil
+    if (mobileOpen) {
+      setMobileOpen(false);
     }
   };
 
-  // Navegación principal
-  const pages = [
-    { name: 'Inicio', id: 'home' },
-    { name: 'Productos', id: 'products' },
-    { name: 'Talleres', id: 'workshops' },
-    { name: 'Nosotros', id: 'about' },
-    { name: 'Contacto', id: 'contacto' },
+  const menuItems = [
+    { label: 'Inicio', id: 'inicio' },
+    { label: 'Productos', id: 'productos' },
+    { label: 'Nosotros', id: 'nosotros' },
+    { label: 'FAQ', id: 'faq' },
+    { label: 'Contacto', id: 'contacto' }
   ];
 
+  const drawer = (
+    <Box sx={{ width: 250, bgcolor: 'background.paper', height: '100%' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        p: 2,
+        borderBottom: '1px solid',
+        borderColor: 'divider'
+      }}>
+        <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
+          Tejelanas Vivi
+        </Typography>
+        <IconButton onClick={handleDrawerToggle} color="primary">
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <List>
+        {menuItems.map((item) => (
+          <ListItem 
+            button 
+            key={item.label} 
+            onClick={() => scrollToSection(item.id)}
+            sx={{
+              '&:hover': {
+                bgcolor: 'primary.light',
+                color: 'white',
+                '& .MuiListItemText-primary': {
+                  color: 'white'
+                }
+              },
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <ListItemText 
+              primary={item.label} 
+              primaryTypographyProps={{
+                fontWeight: 500
+              }}
+            />
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+
   return (
-    <HideOnScroll>
+    <>
       <AppBar 
-        position="sticky" 
-        color="default" 
-        elevation={0}
+        position="fixed" 
         sx={{ 
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(10px)'
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
         }}
       >
-        <Container maxWidth="xl">
-          <Toolbar disableGutters>
-            {/* Logo para desktop */}
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 3 }}>
-              <Avatar 
-                src="/images/logo.jpg" 
-                alt="Tejelanas Vivi" 
-                sx={{ width: 48, height: 48 }}
-                onClick={() => scrollToSection('home')}
-                style={{ cursor: 'pointer' }}
-              />
-            </Box>
-            <Typography
-              variant="h6"
-              noWrap
-              component="div"
-              onClick={() => scrollToSection('home')}
+        <Container maxWidth="lg">
+          <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
+            {/* Logo - CORREGIDO */}
+            <Typography 
+              variant="h5" 
+              component="div" 
               sx={{ 
-                mr: 2, 
-                display: { xs: 'none', md: 'flex' },
-                color: theme.palette.primary.main, 
                 fontWeight: 700,
+                color: 'primary.main',
                 cursor: 'pointer'
               }}
+              onClick={() => scrollToSection('inicio')}
             >
               Tejelanas Vivi
             </Typography>
 
-            {/* Menú móvil */}
-            <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+            {/* Desktop Menu */}
+            {!isMobile && (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {menuItems.map((item) => (
+                  <Button
+                    key={item.label}
+                    onClick={() => scrollToSection(item.id)}
+                    sx={{
+                      color: 'text.primary',
+                      fontWeight: 500,
+                      px: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        transform: 'translateY(-2px)'
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </Box>
+            )}
+
+            {/* Mobile Menu Button */}
+            {isMobile && (
               <IconButton
-                size="large"
-                aria-label="menu"
-                aria-controls="menu-appbar"
-                aria-haspopup="true"
-                onClick={handleOpenNavMenu}
                 color="primary"
-                edge="start"
+                aria-label="abrir menú"
+                edge="end"
+                onClick={handleDrawerToggle}
+                sx={{ ml: 2 }}
               >
                 <MenuIcon />
               </IconButton>
-              <Menu
-                id="menu-appbar"
-                anchorEl={anchorElNav}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'left',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'left',
-                }}
-                open={Boolean(anchorElNav)}
-                onClose={handleCloseNavMenu}
-                sx={{
-                  display: { xs: 'block', md: 'none' },
-                }}
-              >
-                {pages.map((page) => (
-                  <MenuItem 
-                    key={page.name} 
-                    onClick={() => scrollToSection(page.id)}
-                  >
-                    <Typography textAlign="center">{page.name}</Typography>
-                  </MenuItem>
-                ))}
-              </Menu>
-            </Box>
-
-            {/* Logo para móvil */}
-            <Box sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }}>
-              <Avatar 
-                src="/images/logo.jpg" 
-                alt="Tejelanas Vivi" 
-                sx={{ width: 40, height: 40 }}
-                onClick={() => scrollToSection('home')}
-                style={{ cursor: 'pointer' }}
-              />
-            </Box>
-            <Typography
-              variant="h6"
-              noWrap
-              component="div"
-              onClick={() => scrollToSection('home')}
-              sx={{ 
-                flexGrow: 1, 
-                display: { xs: 'flex', md: 'none' },
-                color: theme.palette.primary.main,
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              Tejelanas Vivi
-            </Typography>
-            
-            {/* Navegación desktop */}
-            <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
-              {pages.map((page) => (
-                <Button
-                  key={page.name}
-                  onClick={() => scrollToSection(page.id)}
-                  sx={{ 
-                    mx: 1.5, 
-                    color: theme.palette.text.primary,
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      backgroundColor: 'transparent',
-                    }
-                  }}
-                >
-                  {page.name}
-                </Button>
-              ))}
-            </Box>
-
-            {/* Botón de carrito */}
-            <Box sx={{ display: 'flex' }}>
-              <IconButton color="primary">
-                <ShoppingBagOutlinedIcon />
-              </IconButton>
-              {!isMobile && (
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  sx={{ ml: 2 }}
-                  onClick={() => scrollToSection('contacto')}
-                >
-                  Contactar
-                </Button>
-              )}
-            </Box>
+            )}
           </Toolbar>
         </Container>
       </AppBar>
-    </HideOnScroll>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        anchor="right"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: 250,
+            bgcolor: 'background.paper'
+          },
+        }}
+      >
+        {drawer}
+      </Drawer>
+
+      {/* Spacer for fixed navbar */}
+      <Toolbar />
+    </>
   );
-}
+};
 
 export default Navbar;

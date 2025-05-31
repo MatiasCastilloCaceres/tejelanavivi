@@ -7,7 +7,8 @@ import { Container, Box } from "@mui/material";
 import Navbar from "./components/Navbar";
 import ContactForm from "./components/ContactForm";
 import FAQ from "./components/FAQ";
-import Footer from "./components/Footer"; // Crearé este componente adicional
+import Footer from "./components/Footer"; 
+import ImageCarousel from "./components/ImageCarousel";
 
 // Importación de secciones
 import Home from "./components/Sections/Home";
@@ -133,6 +134,52 @@ const theme = createTheme({
 });
 
 function App() {
+  // Imágenes de respaldo actualizadas con las imágenes reales de la API
+  const fallbackImages = [
+    {
+      src: 'https://www.clinicatecnologica.cl/ipss/tejelanasVivi/imgs/productos/faldaCrochet1.png',
+      alt: 'Falda a Crochet',
+      title: 'Falda a Crochet',
+      description: 'Hermosa falda tejida a crochet, una pieza artesanal que irradia encanto y delicadeza',
+      price: '$9.990',
+      type: 'producto'
+    },
+    {
+      src: 'https://www.clinicatecnologica.cl/ipss/tejelanasVivi/imgs/productos/ovillolanaColor.png',
+      alt: 'Ovillo de Lana Merino Gigante',
+      title: 'Ovillo de Lana Merino Gigante',
+      description: 'Lana conocida por su suavidad, ideal para técnicas como arm knitting o mantas de tejido grueso',
+      price: '$4.990',
+      type: 'producto'
+    },
+    {
+      src: 'https://www.clinicatecnologica.cl/ipss/tejelanasVivi/imgs/productos/cuadro1.png',
+      alt: 'Árbol con follaje de colores',
+      title: 'Árbol con follaje de colores',
+      description: 'Arte textil único con círculos concéntricos de colores vibrantes que dan un toque artístico',
+      price: '$14.990',
+      type: 'producto'
+    },
+    {
+      src: 'https://www.clinicatecnologica.cl/ipss/tejelanasVivi/imgs/servicios/taller1.png',
+      alt: 'Taller Telar Decorativo Junio 2025',
+      title: 'Taller Telar Decorativo Junio 2025',
+      description: 'Aprende técnicas de telar decorativo en Mall Vivo, Avda La florida Rojas Magallanes',
+      date: '08/06/2025',
+      cupos: '50 cupos disponibles',
+      type: 'servicio'
+    },
+    {
+      src: 'https://www.clinicatecnologica.cl/ipss/tejelanasVivi/imgs/servicios/taller2.png',
+      alt: 'Taller Telar Decorativo Julio 2025',
+      title: 'Taller Telar Decorativo Julio 2025',
+      description: 'Taller en nuestro espacio TEJElANAS ubicado en Laguna de Zapallar',
+      date: '20/07/2025',
+      cupos: '100 cupos disponibles',
+      type: 'servicio'
+    }
+  ];
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -140,22 +187,37 @@ function App() {
         {/* Navbar - siempre visible */}
         <Navbar />
         
-        {/* Hero section */}
+        {/* Hero section - ID: inicio */}
         <Home />
         
-        {/* Productos */}
+        {/* Carrusel de imágenes */}
+        <Box sx={{ py: { xs: 4, md: 6 }, bgcolor: 'background.default' }}>
+          <Container maxWidth="lg">
+            <ImageCarousel 
+              height={500}
+              autoPlay={true}
+              autoPlayInterval={5000}
+              title="Nuestros Productos y Servicios"
+              showIndicators={true}
+              showControls={true}
+              fallbackImages={fallbackImages}
+            />
+          </Container>
+        </Box>
+        
+        {/* Productos - ID: productos */}
         <Products />
         
         {/* Separador ondulado */}
         <div className="wave-divider" />
         
-        {/* Sobre nosotros */}
+        {/* Sobre nosotros - ID: nosotros */}
         <About />
         
-        {/* FAQ */}
+        {/* FAQ - ID: faq */}
         <FAQ />
         
-        {/* Contacto */}
+        {/* Contacto - ID: contacto */}
         <ContactForm />
         
         {/* Footer */}

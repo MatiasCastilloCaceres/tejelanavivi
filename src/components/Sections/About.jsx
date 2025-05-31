@@ -1,234 +1,386 @@
-import React from 'react';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Grid, 
-  Button, 
-  Card, 
-  CardContent, 
-  Avatar, 
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Container,
+  Typography,
+  Grid,
+  Button,
+  CircularProgress,
+  Alert,
   useTheme,
-  useMediaQuery 
-} from '@mui/material';
+  Card,
+  CardContent,
+  Avatar,
+} from "@mui/material";
+import {
+  Handyman,
+  LocationOn,
+  School,
+  Favorite,
+  LocalShipping,
+  Groups,
+} from "@mui/icons-material";
+import { apiService } from "../../services/api";
 
 function About() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [imageError, setImageError] = useState(false);
 
-  const values = [
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const aboutData = await apiService.getAboutUs();
+        console.log("📋 About data received:", aboutData);
+
+        setData(aboutData);
+      } catch (err) {
+        console.error("❌ About component: Error:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Extraer imagen de diferentes posibles ubicaciones en la respuesta de la API
+  const getImageUrl = () => {
+    if (!data) return null;
+
+    // Buscar imagen en diferentes ubicaciones
+    return (
+      data.image ||
+      data.foto ||
+      data.imagen ||
+      data.photo ||
+      data.data?.image ||
+      data.data?.foto ||
+      data.data?.imagen
+    );
+  };
+
+  const imageUrl = getImageUrl();
+
+  const features = [
     {
-      title: "Materiales naturales",
-      description: "Todas nuestras lanas y vellones son 100% naturales, respetuosas con el medio ambiente y de la más alta calidad.",
-      iconText: "🌿" 
+      icon: <Handyman />,
+      title: "Productos Artesanales",
+      description:
+        "Lanas naturales y vellón de alta calidad, seleccionados cuidadosamente para tus proyectos de tejido.",
     },
     {
-      title: "Producción artesanal",
-      description: "Cada producto es seleccionado y teñido a mano para garantizar la calidad y el cuidado por los detalles.",
-      iconText: "✨"
+      icon: <School />,
+      title: "Talleres Especializados",
+      description:
+        "Aprende técnicas de crochet y telar en nuestro acogedor espacio TEJElANAS en Laguna de Zapallar.",
     },
     {
-      title: "Conocimiento experto",
-      description: "Con años de experiencia en tejido y técnicas tradicionales, compartimos nuestra pasión a través de talleres.",
-      iconText: "🧵"
-    }
+      icon: <LocalShipping />,
+      title: "Envíos a Todo Chile",
+      description: "Despachos seguros a Santiago y regiones a través de Starken y Chilexpress.",
+    },
+    {
+      icon: <Groups />,
+      title: "Comunidad de Tejedoras",
+      description:
+        "Únete a nuestra comunidad de 471 seguidores apasionadas por el arte del tejido.",
+    },
   ];
 
-  return (
-    <Box sx={{ py: { xs: 8, md: 12 } }} id="about">
-      <Container maxWidth="lg">
-        {/* Sección principal sobre nosotros */}
-        <Grid container spacing={6} alignItems="center" sx={{ mb: 8 }}>
-          <Grid item xs={12} md={6} sx={{ order: { xs: 2, md: 1 } }}>
-            <Box className="fade-in" sx={{ position: 'relative' }}>
-              <Box
-                component="img"
-                src="/images/Talleres_de_Tejido.jpg"
-                alt="Sobre Tejelanas Vivi"
-                sx={{
-                  width: '100%',
-                  height: 'auto',
-                  borderRadius: '20px',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-                  zIndex: 1
-                }}
-              />
-              {!isMobile && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    width: '150px',
-                    height: '150px',
-                    borderRadius: '20px',
-                    bgcolor: theme.palette.primary.light,
-                    opacity: 0.7,
-                    bottom: -20,
-                    right: -20,
-                    zIndex: 0
-                  }}
-                />
-              )}
-              {!isMobile && (
-                <Box
-                  component="img"
-                  src="/images/Lanas_Naturales.jpg"
-                  alt="Detalle de lanas"
-                  sx={{
-                    position: 'absolute',
-                    width: '180px',
-                    height: '180px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '8px solid white',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                    top: -30,
-                    right: -50,
-                    zIndex: 2
-                  }}
-                />
-              )}
-            </Box>
-          </Grid>
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          py: { xs: 6, md: 10 },
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "400px",
+        }}
+        id="about"
+      >
+        <Box sx={{ textAlign: "center" }}>
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Cargando información...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
 
-          <Grid item xs={12} md={6} sx={{ order: { xs: 1, md: 2 } }}>
-            <Box sx={{ 
-              pl: { xs: 0, md: 4 },
-              textAlign: { xs: 'center', md: 'left' }
-            }}>
-              <Typography 
-                variant="h2" 
-                component="h2" 
+  if (error) {
+    return (
+      <Box sx={{ py: { xs: 6, md: 10 } }} id="about">
+        <Container maxWidth="lg">
+          <Alert severity="error" sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Error al cargar información
+            </Typography>
+            <Typography>{error}</Typography>
+          </Alert>
+        </Container>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        py: { xs: 6, md: 10 },
+        background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.secondary.light}10 100%)`,
+        position: "relative",
+      }}
+      id="about"
+    >
+      <Container maxWidth="lg">
+        {/* Header Section */}
+        <Box sx={{ textAlign: "center", mb: 8 }}>
+          <Typography
+            variant="h3"
+            component="h2"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              color: theme.palette.primary.main,
+              mb: 2,
+            }}
+          >
+            Quiénes Somos
+          </Typography>
+
+          <Typography
+            variant="h6"
+            color="text.secondary"
+            sx={{
+              maxWidth: 600,
+              mx: "auto",
+              lineHeight: 1.6,
+              mb: 4,
+            }}
+          >
+            Somos un emprendimiento familiar dedicado al arte del tejido,
+            ubicado en la hermosa zona de Zapallar
+          </Typography>
+        </Box>
+
+        {/* Story Section */}
+        <Grid container spacing={6} alignItems="center" sx={{ mb: 8 }}>
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Typography
+                variant="h4"
+                component="h3"
                 gutterBottom
-                sx={{ 
-                  color: theme.palette.primary.main,
-                  position: 'relative',
-                  display: 'inline-block',
-                  pb: 2,
-                  '&:after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 0,
-                    left: { xs: '50%', md: 0 },
-                    transform: { xs: 'translateX(-50%)', md: 'none' },
-                    width: '80px',
-                    height: '4px',
-                    backgroundColor: theme.palette.secondary.main,
-                    borderRadius: '2px'
-                  }
+                sx={{
+                  fontWeight: 600,
+                  color: "text.primary",
+                  mb: 3,
                 }}
               >
                 Nuestra Historia
               </Typography>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  mb: 3, 
-                  fontSize: '1.1rem',
-                  lineHeight: 1.7
+
+              <Typography
+                variant="body1"
+                paragraph
+                sx={{
+                  fontSize: "1.1rem",
+                  lineHeight: 1.7,
+                  color: "text.secondary",
+                  mb: 3,
                 }}
               >
-                Tejelanas Vivi nació en 2015 como un pequeño emprendimiento en Zapallar, 
-                inspirado por la pasión por el tejido y las técnicas tradicionales. Lo que comenzó como 
-                un hobby se ha convertido en un espacio dedicado a ofrecer los mejores materiales 
-                para amantes del tejido y la artesanía.
+                TejelAnas Vivi nace de la pasión por preservar y compartir las
+                técnicas
+                tradicionales de tejido. Con más de 396 publicaciones en nuestro
+                Instagram,
+                hemos construido una comunidad de tejedoras que comparten el amor
+                por
+                crear con sus propias manos.
               </Typography>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  mb: 4,
-                  fontSize: '1.1rem',
-                  lineHeight: 1.7
+
+              <Typography
+                variant="body1"
+                paragraph
+                sx={{
+                  fontSize: "1.1rem",
+                  lineHeight: 1.7,
+                  color: "text.secondary",
+                  mb: 3,
                 }}
               >
-                Nos especializamos en lanas naturales teñidas artesanalmente, vellón de alta calidad 
-                y talleres donde compartimos técnicas y conocimientos. Cada producto es seleccionado 
-                cuidadosamente para garantizar la mejor experiencia a nuestros clientes.
+                Nuestro espacio TEJElANAS, ubicado en Laguna de Zapallar, es más que
+                un taller: es un lugar de encuentro donde las tradiciones se
+                mantienen
+                vivas y nuevas tejedoras descubren su pasión por este arte
+                milenario.
               </Typography>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: 2, 
-                flexWrap: 'wrap',
-                justifyContent: { xs: 'center', md: 'flex-start' }
-              }}>
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  size="large"
-                >
-                  Conoce nuestros productos
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  color="secondary" 
-                  size="large"
-                >
-                  Contactar
-                </Button>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  p: 3,
+                  bgcolor: theme.palette.primary.main + "10",
+                  borderRadius: 2,
+                  borderLeft: `4px solid ${theme.palette.primary.main}`,
+                }}
+              >
+                <LocationOn color="primary" />
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Ubicación
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    TEJElANAS - Laguna de Zapallar, Chile
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Box sx={{ position: "relative", textAlign: "center" }}>
+              {/* Imagen representativa */}
+              <Box
+                sx={{
+                  width: { xs: 280, md: 350 },
+                  height: { xs: 280, md: 350 },
+                  borderRadius: "50%",
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main}20, ${theme.palette.secondary.main}20)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mx: "auto",
+                  position: "relative",
+                  border: `3px solid ${theme.palette.primary.main}30`,
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    width: "calc(100% + 20px)",
+                    height: "calc(100% + 20px)",
+                    borderRadius: "50%",
+                    border: `2px dashed ${theme.palette.primary.main}40`,
+                    animation: "spin 30s linear infinite",
+                    zIndex: -1,
+                  },
+                }}
+              >
+                <Box sx={{ textAlign: "center" }}>
+                  <Box sx={{ fontSize: "4rem", mb: 2 }}>🧶</Box>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: theme.palette.primary.main,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Tradición & Calidad
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Elementos flotantes */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "20%",
+                  left: "10%",
+                  fontSize: "2rem",
+                  animation: "float 6s ease-in-out infinite",
+                }}
+              >
+                🪡
+              </Box>
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: "20%",
+                  right: "10%",
+                  fontSize: "2rem",
+                  animation: "float 6s ease-in-out infinite 2s",
+                }}
+              >
+                ✂️
               </Box>
             </Box>
           </Grid>
         </Grid>
 
-        {/* Nuestros valores */}
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography 
-            variant="h3" 
-            component="h3" 
-            gutterBottom
-            sx={{ 
-              color: theme.palette.text.primary,
-              mb: 1
+        {/* Features Grid */}
+        <Box sx={{ mb: 6 }}>
+          <Typography
+            variant="h4"
+            component="h3"
+            sx={{
+              textAlign: "center",
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 6,
             }}
           >
-            Nuestros Valores
-          </Typography>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: theme.palette.text.secondary,
-              maxWidth: '700px',
-              mx: 'auto',
-              mb: 6
-            }}
-          >
-            Lo que nos hace diferentes y define nuestra filosofía
+            ¿Por qué elegirnos?
           </Typography>
 
           <Grid container spacing={4}>
-            {values.map((value, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <Card 
-                  className="floating-card"
-                  sx={{ 
-                    height: '100%', 
-                    borderRadius: 4,
+            {features.map((feature, index) => (
+              <Grid item xs={12} sm={6} lg={3} key={index}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    textAlign: "center",
                     p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center'
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    "&:hover": {
+                      transform: "translateY(-8px)",
+                      boxShadow: "0 12px 40px rgba(0,0,0,0.1)",
+                    },
                   }}
                 >
-                  <Box
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mb: 2,
-                      bgcolor: theme.palette.background.default,
-                      fontSize: '2rem' // Para emojis
-                    }}
-                  >
-                    {value.iconText}
-                  </Box>
-                  <CardContent sx={{ textAlign: 'center', flexGrow: 1 }}>
-                    <Typography variant="h5" component="h3" gutterBottom>
-                      {value.title}
+                  <CardContent>
+                    <Avatar
+                      sx={{
+                        bgcolor: theme.palette.primary.main,
+                        width: 64,
+                        height: 64,
+                        mx: "auto",
+                        mb: 3,
+                      }}
+                    >
+                      {feature.icon}
+                    </Avatar>
+
+                    <Typography
+                      variant="h6"
+                      component="h4"
+                      gutterBottom
+                      sx={{
+                        fontWeight: 600,
+                        color: "text.primary",
+                      }}
+                    >
+                      {feature.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {value.description}
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ lineHeight: 1.6 }}
+                    >
+                      {feature.description}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -237,63 +389,108 @@ function About() {
           </Grid>
         </Box>
 
-        {/* Testimonios */}
-        <Box sx={{ 
-          mt: 10, 
-          pt: 8, 
-          pb: 8, 
-          bgcolor: theme.palette.background.default,
-          borderRadius: 4
-        }}>
-          <Typography 
-            variant="h3" 
-            component="h3" 
-            align="center" 
+        {/* Stats Section */}
+        <Box
+          sx={{
+            textAlign: "center",
+            bgcolor: theme.palette.background.paper,
+            borderRadius: 3,
+            p: 6,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+          }}
+        >
+          <Typography
+            variant="h5"
+            component="h3"
             gutterBottom
-            sx={{ mb: 6 }}
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 4,
+            }}
           >
-            Lo que dicen nuestros clientes
+            Números que nos enorgullecen
           </Typography>
 
           <Grid container spacing={4}>
-            {[1, 2, 3].map((item) => (
-              <Grid item xs={12} md={4} key={item}>
-                <Card 
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 4,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: 700,
+                    color: theme.palette.primary.main,
+                    mb: 1,
                   }}
                 >
-                  <CardContent sx={{ p: 4 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 2 }}>
-                        {item === 1 ? 'MC' : item === 2 ? 'LP' : 'RG'}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" component="p">
-                          {item === 1 ? 'María Castro' : item === 2 ? 'Laura Pérez' : 'Rodrigo González'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Cliente desde {2020 + item}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Typography variant="body1" sx={{ fontStyle: 'italic', mt: 2 }}>
-                      {item === 1 
-                        ? "Las lanas de Tejelanas Vivi son increíbles. Los colores son vibrantes y la calidad es excepcional. ¡Ya he hecho varios proyectos con ellas!" 
-                        : item === 2 
-                        ? "Participé en uno de sus talleres y fue una experiencia maravillosa. Aprendí muchísimo y el ambiente es muy acogedor."
-                        : "El vellón que compré es perfecto para mis proyectos de fieltro. Definitivamente volveré a comprar más productos."
-                      }
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+                  396
+                </Typography>
+                <Typography variant="h6" color="text.secondary">
+                  Publicaciones en Instagram
+                </Typography>
+              </Box>
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: 700,
+                    color: theme.palette.secondary.main,
+                    mb: 1,
+                  }}
+                >
+                  471
+                </Typography>
+                <Typography variant="h6" color="text.secondary">
+                  Seguidores Fieles
+                </Typography>
+              </Box>
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <Box>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: 700,
+                    color: theme.palette.accent.teal,
+                    mb: 1,
+                  }}
+                >
+                  100%
+                </Typography>
+                <Typography variant="h6" color="text.secondary">
+                  Satisfacción Garantizada
+                </Typography>
+              </Box>
+            </Grid>
           </Grid>
         </Box>
       </Container>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-20px);
+          }
+        }
+      `}</style>
     </Box>
   );
 }

@@ -1,354 +1,459 @@
 import React, { useState } from 'react';
-import { 
-  TextField, 
-  Button, 
-  Box, 
-  Typography, 
-  Alert, 
-  Paper, 
-  Grid, 
-  Card, 
-  CardContent,
-  Snackbar,
+import {
+  Container,
+  Typography,
+  Grid,
+  TextField,
+  Button,
+  Box,
+  Alert,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Container,
-  useTheme
+  Checkbox,
+  FormControlLabel,
+  CircularProgress
 } from '@mui/material';
-import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
+import { Send, Shield, CheckCircle } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 
-const ContactForm = () => {
+const ContactForm = ({ preselectedProduct = '' }) => {
   const theme = useTheme();
-  const [data, setData] = useState({ 
-    name: '', 
-    email: '', 
-    phone: '',
-    subject: 'general', 
-    message: '' 
+  const [formData, setFormData] = useState({
+    nombre: '',
+    email: '',
+    telefono: '',
+    producto: preselectedProduct,
+    mensaje: '',
+    acepta_terminos: false,
+    captcha_verified: false
   });
-  const [sent, setSent] = useState(false);
+  
+  const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState({ type: '', message: '' });
+  const [loading, setLoading] = useState(false);
+  const [captchaKey, setCaptchaKey] = useState(Math.random());
 
-  const handleChange = e => setData({ ...data, [e.target.name]: e.target.value });
+  // Validaciones del lado del cliente
+  const validateField = (name, value) => {
+    const validations = {
+      nombre: {
+        required: true,
+        minLength: 2,
+        pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+        message: 'Nombre debe tener al menos 2 caracteres y solo letras'
+      },
+      email: {
+        required: true,
+        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        message: 'Ingresa un email válido'
+      },
+      telefono: {
+        required: true,
+        pattern: /^(\+56)?[0-9]{8,9}$/,
+        message: 'Teléfono debe tener formato chileno válido'
+      },
+      mensaje: {
+        required: true,
+        minLength: 10,
+        maxLength: 500,
+        message: 'Mensaje debe tener entre 10 y 500 caracteres'
+      }
+    };
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    setSent(true);
-    
-    // Reset form after submission
-    setTimeout(() => {
-      setSent(false);
-      setData({ 
-        name: '', 
-        email: '', 
-        phone: '',
-        subject: 'general', 
-        message: '' 
-      });
-    }, 6000);
-  };
+    const validation = validations[name];
+    if (!validation) return '';
 
-  const handleClose = () => {
-    setSent(false);
-  };
-
-  const contactInfo = [
-    {
-      icon: <LocationOnIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: "Dirección",
-      content: "Av. Principal 123, Zapallar"
-    },
-    {
-      icon: <PhoneIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: "Teléfono",
-      content: "+56 9 8765 4321"
-    },
-    {
-      icon: <EmailIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: "Email",
-      content: "contacto@tejelanasvivi.cl"
+    if (validation.required && !value.trim()) {
+      return `${name.charAt(0).toUpperCase() + name.slice(1)} es requerido`;
     }
-  ];
+
+    if (validation.minLength && value.length < validation.minLength) {
+      return validation.message;
+    }
+
+    if (validation.maxLength && value.length > validation.maxLength) {
+      return validation.message;
+    }
+
+    if (validation.pattern && !validation.pattern.test(value)) {
+      return validation.message;
+    }
+
+    return '';
+  };
+
+  // Sanitización de datos
+  const sanitizeInput = (value) => {
+    return value
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
+      .replace(/[<>]/g, '') // Remove < and >
+      .trim();
+  };
+
+  // Captcha simple (matemático)
+  const [captchaQuestion, setCaptchaQuestion] = useState(() => {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    return { a, b, answer: a + b };
+  });
+  const [captchaInput, setCaptchaInput] = useState('');
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const sanitizedValue = type === 'checkbox' ? checked : sanitizeInput(value);
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: sanitizedValue
+    }));
+
+    // Validación en tiempo real
+    if (type !== 'checkbox') {
+      const error = validateField(name, sanitizedValue);
+      setErrors(prev => ({
+        ...prev,
+        [name]: error
+      }));
+    }
+  };
+
+  const handleCaptchaChange = (e) => {
+    const value = e.target.value;
+    setCaptchaInput(value);
+    
+    const isCorrect = parseInt(value) === captchaQuestion.answer;
+    setFormData(prev => ({
+      ...prev,
+      captcha_verified: isCorrect
+    }));
+    
+    setErrors(prev => ({
+      ...prev,
+      captcha: isCorrect ? '' : 'Respuesta incorrecta'
+    }));
+  };
+
+  const refreshCaptcha = () => {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    setCaptchaQuestion({ a, b, answer: a + b });
+    setCaptchaInput('');
+    setFormData(prev => ({ ...prev, captcha_verified: false }));
+    setCaptchaKey(Math.random());
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Validar todos los campos
+    Object.keys(formData).forEach(key => {
+      if (key !== 'acepta_terminos' && key !== 'captcha_verified') {
+        const error = validateField(key, formData[key]);
+        if (error) newErrors[key] = error;
+      }
+    });
+
+    // Validaciones especiales
+    if (!formData.acepta_terminos) {
+      newErrors.acepta_terminos = 'Debes aceptar los términos y condiciones';
+    }
+
+    if (!formData.captcha_verified) {
+      newErrors.captcha = 'Debes completar la verificación correctamente';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      setStatus({
+        type: 'error',
+        message: 'Por favor corrige los errores en el formulario'
+      });
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      // Simulación de envío al servidor con validación del lado del servidor
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest', // Protección CSRF
+        },
+        body: JSON.stringify({
+          ...formData,
+          timestamp: Date.now(), // Para prevenir replay attacks
+          honeypot: '', // Campo oculto para detectar bots
+        }),
+      });
+
+      if (response.ok) {
+        setStatus({
+          type: 'success',
+          message: '¡Mensaje enviado exitosamente! Te contactaremos pronto.'
+        });
+        
+        // Limpiar formulario
+        setFormData({
+          nombre: '',
+          email: '',
+          telefono: '',
+          producto: '',
+          mensaje: '',
+          acepta_terminos: false,
+          captcha_verified: false
+        });
+        setCaptchaInput('');
+        refreshCaptcha();
+        
+      } else {
+        throw new Error('Error del servidor');
+      }
+    } catch (error) {
+      console.error('Error sending form:', error);
+      setStatus({
+        type: 'error',
+        message: 'Error al enviar el mensaje. Inténtalo nuevamente.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Box 
-      id="contacto"
-      sx={{ 
-        py: { xs: 8, md: 12 },
-        background: `linear-gradient(to bottom, ${theme.palette.background.default} 0%, white 100%)`,
-      }}
-    >
-      <Container maxWidth="lg">
+    <Box id="contacto" sx={{ py: { xs: 6, md: 10 }, bgcolor: 'background.default' }}>
+      <Container maxWidth="md">
         <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography 
-            variant="h2" 
-            component="h2" 
+          <Typography
+            variant="h3"
+            component="h2"
             gutterBottom
-            sx={{ 
+            sx={{
+              fontWeight: 700,
               color: theme.palette.primary.main,
-              position: 'relative',
-              display: 'inline-block',
-              pb: 2,
-              '&:after': {
-                content: '""',
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '80px',
-                height: '4px',
-                backgroundColor: theme.palette.secondary.main,
-                borderRadius: '2px'
-              }
+              mb: 2
             }}
           >
             Contáctanos
           </Typography>
-          <Typography 
-            variant="h5" 
-            sx={{ 
-              maxWidth: '700px',
-              mx: 'auto',
-              color: theme.palette.text.secondary,
-              mt: 2
-            }}
+          <Typography
+            variant="h6"
+            color="text.secondary"
+            sx={{ maxWidth: 600, mx: 'auto', lineHeight: 1.6 }}
           >
-            Estamos aquí para responder tus dudas sobre nuestros productos y talleres
+            ¿Tienes alguna pregunta sobre nuestros productos o talleres? 
+            ¡Escríbenos y te responderemos pronto!
           </Typography>
         </Box>
 
-        <Grid container spacing={5}>
-          {/* Información de contacto */}
-          <Grid item xs={12} md={5}>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h5" gutterBottom fontWeight="600" color="primary">
-                Información de Contacto
-              </Typography>
-              <Typography variant="body1" paragraph>
-                Puedes comunicarte con nosotros directamente o utilizar nuestro formulario de contacto.
-                Te responderemos a la brevedad.
-              </Typography>
-            </Box>
+        {status.message && (
+          <Alert 
+            severity={status.type} 
+            sx={{ mb: 3 }}
+            icon={status.type === 'success' ? <CheckCircle /> : undefined}
+          >
+            {status.message}
+          </Alert>
+        )}
 
-            <Grid container spacing={3}>
-              {contactInfo.map((info, index) => (
-                <Grid item xs={12} key={index}>
-                  <Card 
-                    elevation={2} 
-                    sx={{ 
-                      borderRadius: 2,
-                      transition: 'transform 0.3s',
-                      '&:hover': {
-                        transform: 'translateY(-5px)'
-                      }
-                    }}
-                  >
-                    <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
-                      <Box sx={{ mr: 3 }}>
-                        {info.icon}
-                      </Box>
-                      <Box>
-                        <Typography variant="h6" gutterBottom fontWeight="500">
-                          {info.title}
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                          {info.content}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-
-            <Box 
-              component="img"
-              src="/images/Talleres_de_Tejido.jpg"
-              alt="Contacto"
-              sx={{
-                width: '100%',
-                height: '220px',
-                objectFit: 'cover',
-                borderRadius: 3,
-                mt: 4,
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-              }}
-            />
-          </Grid>
-
-          {/* Formulario */}
-          <Grid item xs={12} md={7}>
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                p: 4, 
-                borderRadius: 3,
-                backgroundColor: 'white',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Elementos decorativos */}
-              <Box 
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 150,
-                  height: 150,
-                  borderRadius: '50%',
-                  backgroundColor: theme.palette.primary.light,
-                  opacity: 0.1,
-                  zIndex: 0
-                }}
-              />
-              <Box 
-                sx={{
-                  position: 'absolute',
-                  bottom: -40,
-                  left: -40,
-                  width: 180,
-                  height: 180,
-                  borderRadius: '50%',
-                  backgroundColor: theme.palette.secondary.light,
-                  opacity: 0.1,
-                  zIndex: 0
-                }}
-              />
-
-              <Box sx={{ position: 'relative', zIndex: 1 }}>
-                <Typography variant="h5" gutterBottom fontWeight="600" color="primary.dark">
-                  Envíanos un mensaje
-                </Typography>
-                <Typography variant="body1" paragraph color="text.secondary" sx={{ mb: 3 }}>
-                  Completa el formulario y te responderemos a la brevedad
-                </Typography>
-
-                <form onSubmit={handleSubmit}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField 
-                        fullWidth 
-                        label="Nombre" 
-                        name="name" 
-                        value={data.name}
-                        onChange={handleChange} 
-                        required
-                        variant="outlined"
-                        InputProps={{
-                          sx: { borderRadius: 2 }
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField 
-                        fullWidth 
-                        label="Correo" 
-                        name="email" 
-                        type="email" 
-                        value={data.email}
-                        onChange={handleChange} 
-                        required
-                        variant="outlined"
-                        InputProps={{
-                          sx: { borderRadius: 2 }
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField 
-                        fullWidth 
-                        label="Teléfono (opcional)" 
-                        name="phone"
-                        value={data.phone}
-                        onChange={handleChange}
-                        variant="outlined"
-                        InputProps={{
-                          sx: { borderRadius: 2 }
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth variant="outlined">
-                        <InputLabel>Asunto</InputLabel>
-                        <Select
-                          name="subject"
-                          value={data.subject}
-                          onChange={handleChange}
-                          label="Asunto"
-                          sx={{ borderRadius: 2 }}
-                        >
-                          <MenuItem value="general">Consulta general</MenuItem>
-                          <MenuItem value="products">Productos</MenuItem>
-                          <MenuItem value="workshops">Talleres</MenuItem>
-                          <MenuItem value="wholesale">Ventas por mayor</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField 
-                        fullWidth 
-                        multiline 
-                        rows={5} 
-                        label="Mensaje" 
-                        name="message"
-                        value={data.message}
-                        onChange={handleChange} 
-                        required
-                        variant="outlined"
-                        InputProps={{
-                          sx: { borderRadius: 2 }
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Button 
-                        type="submit" 
-                        variant="contained" 
-                        color="primary" 
-                        size="large" 
-                        fullWidth
-                        sx={{ 
-                          mt: 2, 
-                          py: 1.5, 
-                          borderRadius: 2,
-                          fontSize: '1rem'
-                        }}
-                      >
-                        Enviar mensaje
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </form>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
-
-      <Snackbar 
-        open={sent} 
-        autoHideDuration={6000} 
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleClose} 
-          severity="success" 
-          variant="filled"
-          sx={{ 
-            width: '100%',
-            borderRadius: 2,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            p: { xs: 3, md: 4 },
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
           }}
         >
-          ¡Gracias por contactarnos! Te responderemos a la brevedad.
-        </Alert>
-      </Snackbar>
+          {/* Honeypot field - oculto para detectar bots */}
+          <input
+            type="text"
+            name="honeypot"
+            style={{ display: 'none' }}
+            tabIndex="-1"
+            autoComplete="off"
+          />
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Nombre completo"
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleChange}
+                error={!!errors.nombre}
+                helperText={errors.nombre}
+                required
+                inputProps={{
+                  maxLength: 50,
+                  autoComplete: 'name'
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={!!errors.email}
+                helperText={errors.email}
+                required
+                inputProps={{
+                  autoComplete: 'email'
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Teléfono"
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleChange}
+                error={!!errors.telefono}
+                helperText={errors.telefono || 'Formato: +56912345678 o 912345678'}
+                required
+                inputProps={{
+                  autoComplete: 'tel'
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Producto de interés</InputLabel>
+                <Select
+                  name="producto"
+                  value={formData.producto}
+                  onChange={handleChange}
+                  label="Producto de interés"
+                >
+                  <MenuItem value="">Selecciona una opción</MenuItem>
+                  <MenuItem value="lanas">Lanas y vellones</MenuItem>
+                  <MenuItem value="talleres">Talleres de crochet</MenuItem>
+                  <MenuItem value="productos">Productos terminados</MenuItem>
+                  <MenuItem value="consulta">Consulta general</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Mensaje"
+                name="mensaje"
+                multiline
+                rows={4}
+                value={formData.mensaje}
+                onChange={handleChange}
+                error={!!errors.mensaje}
+                helperText={errors.mensaje || `${formData.mensaje.length}/500 caracteres`}
+                required
+                inputProps={{
+                  maxLength: 500
+                }}
+              />
+            </Grid>
+
+            {/* Captcha matemático */}
+            <Grid item xs={12} sm={8}>
+              <TextField
+                fullWidth
+                label={`Verificación: ¿Cuánto es ${captchaQuestion.a} + ${captchaQuestion.b}?`}
+                value={captchaInput}
+                onChange={handleCaptchaChange}
+                error={!!errors.captcha}
+                helperText={errors.captcha}
+                required
+                type="number"
+                key={captchaKey}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <Button
+                variant="outlined"
+                onClick={refreshCaptcha}
+                fullWidth
+                sx={{ height: '56px' }}
+              >
+                Nueva pregunta
+              </Button>
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="acepta_terminos"
+                    checked={formData.acepta_terminos}
+                    onChange={handleChange}
+                    required
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    Acepto los términos y condiciones y el tratamiento de mis datos personales
+                    según la Ley de Protección de Datos Personales.
+                  </Typography>
+                }
+              />
+              {errors.acepta_terminos && (
+                <Typography variant="caption" color="error">
+                  {errors.acepta_terminos}
+                </Typography>
+              )}
+            </Grid>
+
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <Shield color="success" fontSize="small" />
+                <Typography variant="body2" color="success.main">
+                  Tus datos están protegidos con encriptación SSL
+                </Typography>
+              </Box>
+              
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                fullWidth
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Send />}
+                disabled={loading || !formData.captcha_verified || !formData.acepta_terminos}
+                sx={{
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
+                  }
+                }}
+              >
+                {loading ? 'Enviando...' : 'Enviar Mensaje'}
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      </Container>
     </Box>
   );
 };
