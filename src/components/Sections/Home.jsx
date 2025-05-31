@@ -261,6 +261,37 @@ function Home() {
                   </Box>
                 </Grid>
               </Grid>
+
+              {/* Instagram CTA -para mejor flujo */}
+              <Box sx={{ mt: 4, textAlign: { xs: 'center', md: 'left' } }}>
+                <Button
+                  variant="text"
+                  startIcon={<Instagram />}
+                  href="https://www.instagram.com/teje_lanas.vivi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    color: 'text.secondary',
+                    fontWeight: 500,
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    '&:hover': {
+                      color: 'primary.main',
+                      bgcolor: 'primary.main',
+                      color: 'white',
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                    Síguenos en Instagram @teje_lanas.vivi
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                    @teje_lanas.vivi
+                  </Box>
+                </Button>
+              </Box>
             </Box>
           </Grid>
 
@@ -312,34 +343,12 @@ function Home() {
           </Grid>
         </Grid>
 
-        {/* Instagram CTA */}
-        <Box 
-          sx={{ 
-            position: 'absolute',
-            bottom: 40,
-            left: 0,
-            right: 0,
-            textAlign: 'center'
-          }}
-        >
-          <Button
-            variant="text"
-            startIcon={<Instagram />}
-            href="https://www.instagram.com/teje_lanas.vivi"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 500,
-              '&:hover': {
-                color: 'primary.main',
-                transform: 'translateY(-2px)'
-              }
-            }}
-          >
-            Síguenos en Instagram @teje_lanas.vivi
-          </Button>
+        {/* ELIMINAR: Ya no necesitamos el botón absoluto */}
+        {/* 
+        <Box sx={{ position: 'absolute'... }}>
+          ...
         </Box>
+        */}
       </Container>
 
       {/* Animación CSS */}
